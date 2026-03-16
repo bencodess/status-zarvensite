@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Systemstatus</title>
+
+<style>
+*{
+box-sizing:border-box;
+margin:0;
+padding:0;
+}
+
+body{
+background:#1a1a1a;
+color:#e0e0e0;
+font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans",Helvetica,Arial,sans-serif;
+min-height:100vh;
+}
+
+.header{
+background:#252525;
+border-bottom:1px solid #404040;
+padding:32px 0;
+text-align:center;
+}
+
+.logo{
+font-size:28px;
+font-weight:600;
+color:#6b8e6b;
+margin-bottom:8px;
+}
+
+.status-badge{
+display:inline-flex;
+align-items:center;
+gap:8px;
+padding:6px 16px;
+border-radius:50px;
+background:#333;
+font-size:14px;
+font-weight:500;
+}
+
+.status-badge .dot{
+width:8px;
+height:8px;
+border-radius:50%;
+background:#6b8e6b;
+}
+
+.status-badge.degraded .dot{
+background:#8b8b5a;
+}
+
+.status-badge.outage .dot{
+background:#8b4444;
+}
+
+.container{
+max-width:800px;
+margin:0 auto;
+padding:40px 20px;
+}
+
+.page-title{
+font-size:20px;
+font-weight:400;
+color:#888;
+margin-bottom:32px;
+}
+
+.systems{
+margin-bottom:48px;
+}
+
+.system-group{
+margin-bottom:32px;
+}
+
+.group-title{
+font-size:14px;
+font-weight:600;
+text-transform:uppercase;
+letter-spacing:0.5px;
+color:#888;
+margin-bottom:16px;
+}
+
+.system-item{
+background:#252525;
+border:1px solid #404040;
+border-radius:6px;
+padding:16px;
+margin-bottom:8px;
+display:flex;
+justify-content:space-between;
+align-items:center;
+}
+
+.system-name{
+font-size:16px;
+font-weight:500;
+color:#e0e0e0;
+}
+
+.system-status{
+font-size:14px;
+display:flex;
+align-items:center;
+gap:6px;
+}
+
+.status-indicator{
+width:10px;
+height:10px;
+border-radius:50%;
+}
+
+.status-indicator.up{
+background:#6b8e6b;
+}
+
+.status-indicator.down{
+background:#8b4444;
+}
+
+.status-indicator.degraded{
+background:#8b8b5a;
+}
+
+.status-indicator.loading{
+background:#666;
+animation:pulse 1.5s infinite;
+}
+
+@keyframes pulse{
+0%,100%{opacity:0.4}
+50%{opacity:1}
+}
+
+.footer{
+border-top:1px solid #404040;
+padding:24px 0;
+text-align:center;
+font-size:14px;
+color:#888;
+}
+
+.last-updated{
+margin-bottom:8px;
+}
+
+a{
+color:#6b8e6b;
+text-decoration:none;
+}
+
+a:hover{
+text-decoration:underline;
+}
+</style>
+</head>
+
+<body>
+
+
+<header class="header">
+<div class="logo">
+Systemstatus
+</div>
+<div class="status-badge" id="overall-status">
+<span class="dot"></span>
+<span id="status-text">Alle Systeme Operativ</span>
+</div>
+</header>
+
+<div class="container">
+
+<div class="systems">
+<div class="system-group">
+<div class="group-title">Dienste</div>
+
+<div class="system-item">
+<span class="system-name">zarven.net</span>
+<span class="system-status">
+<span class="status-indicator up" id="site-indicator"></span>
+<span id="site-status">Operativ</span>
+</span>
+</div>
+
+</div>
+</div>
+
+<footer class="footer">
+<div class="last-updated">Zuletzt aktualisiert: <span id="last-updated">Lädt...</span></div>
+<div>Powered by <a href="https://github.com/bencodess/status-zarvensite" target="_blank">BenCodess</a></div>
+</footer>
+
+</div>
+
+<script>
+async function check(id, url) {
+const indicator = document.getElementById(`${id}-indicator`);
+const statusText = document.getElementById(`${id}-status`);
+
+indicator.classList.remove('up', 'down', 'degraded');
+indicator.classList.add('loading');
+statusText.textContent = 'Prüfe...';
+
+try {
+const controller = new AbortController();
+const timeout = setTimeout(() => controller.abort(), 5000);
+const res = await fetch(url, { method: 'HEAD', signal: controller.signal });
+clearTimeout(timeout);
+
+indicator.classList.remove('loading');
+indicator.classList.add('up');
+statusText.textContent = 'Operativ';
+updateOverallStatus('operational');
+
+} catch {
+indicator.classList.remove('loading');
+indicator.classList.add('down');
+statusText.textContent = 'Ausfall';
+updateOverallStatus('outage');
+}
+
+updateLastUpdated();
+}
+
+function updateOverallStatus(status) {
+const badge = document.getElementById('overall-status');
+const text = document.getElementById('status-text');
+
+badge.classList.remove('degraded', 'outage');
+
+if (status === 'degraded') {
+badge.classList.add('degraded');
+text.textContent = 'Leistung Eingeschränkt';
+} else if (status === 'outage') {
+badge.classList.add('outage');
+text.textContent = 'Teilweiser Ausfall';
+} else {
+text.textContent = 'Alle Systeme Operativ';
+}
+}
+
+function updateLastUpdated() {
+const now = new Date();
+document.getElementById('last-updated').textContent = now.toLocaleTimeString('de-DE');
+}
+
+check('site', 'https://zarven.net');
+
+setInterval(() => {
+check('site', 'https://zarven.net');
+}, 60000);
+</script>
+
+</body>
+</html>
